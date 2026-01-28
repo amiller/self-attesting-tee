@@ -1,0 +1,9 @@
+services:
+  app:
+    image: socrates1024/self-attesting-tee@sha256:58ad5ab3fc04e320bf4f5fd8a71daaa39a460b34e4e3bf8fa6bb4ee4021ca0d0
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/dstack.sock:/var/run/dstack.sock
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
