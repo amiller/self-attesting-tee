@@ -514,7 +514,7 @@ def execute_tool(name: str, input: dict) -> str:
                 git_info = json.load(f)
             repo = git_info.get("repo", "").replace("https://github.com/", "")
         except:
-            repo = "socrates1024/self-attesting-tee"
+            repo = "amiller/self-attesting-tee"
         url = f"https://raw.githubusercontent.com/{repo}/{ref}/{fname}"
         try:
             resp = httpx.get(url, timeout=10)

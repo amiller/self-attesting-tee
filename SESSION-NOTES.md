@@ -76,3 +76,25 @@ The bot as an "evidence-gathering clerk" for remote auditors:
 2. Test in real TEE (get actual TDX quotes)
 3. Iterate on system prompt based on user interactions
 4. Add more verification tools
+
+## Planning Notes
+
+### verify_image Tool - Actual Build Capability
+Currently `verify_image` just returns the Dockerfile and manual verification steps.
+
+**Desired behavior:** The tool should actually perform a docker build inside the container:
+1. Clone the source repo (from git_info.json)
+2. Checkout the baked-in commit
+3. Run `docker build`
+4. Compare resulting image hash against the deployed image digest
+5. Report match/mismatch to the auditor
+
+**Implementation considerations:**
+- Needs docker-in-docker or docker socket access
+- Repository should have a standardized build script
+- May need to pin base images and dependencies for reproducibility
+- Build output could be cached to avoid repeated builds
+
+### fetch_github for Staleness Detection
+The `fetch_github` tool can compare baked-in code against current GitHub HEAD.
+This lets the bot tell the auditor "I'm X commits behind main" or "my version of app.py differs from current main" - useful context even if the bot is intentionally running an older version.
