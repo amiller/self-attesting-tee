@@ -400,6 +400,27 @@ TOOLS = [
             },
             "required": ["filename"]
         }
+    },
+    {
+        "name": "query_kms_contract",
+        "description": "Query the on-chain KMS/AppAuthority contract on Base to get app registration info and allowed compose hashes.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "app_id": {"type": "string", "description": "App ID to query (hex). If omitted, uses this app's ID from dstack."}
+            }
+        }
+    },
+    {
+        "name": "query_compose_events",
+        "description": "Fetch AppComposeHashAllowed events from the on-chain contract for this app.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "app_id": {"type": "string", "description": "App ID to query. If omitted, uses this app's ID."},
+                "limit": {"type": "integer", "description": "Max events to return. Default: 10"}
+            }
+        }
     }
 ]
 
@@ -523,6 +544,80 @@ def execute_tool(name: str, input: dict) -> str:
             return json.dumps({"error": f"HTTP {resp.status_code}", "url": url})
         except Exception as e:
             return json.dumps({"error": str(e), "url": url})
+
+    elif name == "query_kms_contract":
+        BASE_RPC = "https://mainnet.base.org"
+        KMS_CONTRACT = "0xbE60F92FC5a2fC73f6DeC51BaD1EED45b2f61642"  # dstack KMS on Base
+        app_id = input.get("app_id")
+        if not app_id and dstack:
+            try:
+                info = dstack.info()
+                app_id = info.app_id
+            except:
+                pass
+        if not app_id:
+            return json.dumps({"error": "No app_id available"})
+        app_id_clean = app_id.replace("app_", "").replace("0x", "")
+        # Call getAppInfo(bytes32 appId) - selector 0x5be4b3a8
+        call_data = "0x5be4b3a8" + app_id_clean.zfill(64)
+        try:
+            resp = httpx.post(BASE_RPC, json={
+                "jsonrpc": "2.0", "id": 1, "method": "eth_call",
+                "params": [{"to": KMS_CONTRACT, "data": call_data}, "latest"]
+            }, timeout=10)
+            result = resp.json().get("result", "0x")
+            return json.dumps({
+                "app_id": app_id,
+                "contract": KMS_CONTRACT,
+                "chain": "base",
+                "raw_result": result,
+                "basescan": f"https://basescan.org/address/{KMS_CONTRACT}"
+            }, indent=2)
+        except Exception as e:
+            return json.dumps({"error": str(e)})
+
+    elif name == "query_compose_events":
+        BASE_RPC = "https://mainnet.base.org"
+        KMS_CONTRACT = "0xbE60F92FC5a2fC73f6DeC51BaD1EED45b2f61642"
+        app_id = input.get("app_id")
+        limit = input.get("limit", 10)
+        if not app_id and dstack:
+            try:
+                info = dstack.info()
+                app_id = info.app_id
+            except:
+                pass
+        app_id_padded = "0x" + app_id.replace("app_", "").replace("0x", "").zfill(64) if app_id else None
+        try:
+            # Query recent logs from contract (last 10000 blocks)
+            resp = httpx.post(BASE_RPC, json={"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []}, timeout=5)
+            latest = int(resp.json().get("result", "0x0"), 16)
+            from_block = hex(max(0, latest - 100000))
+            filter_params = {"address": KMS_CONTRACT, "fromBlock": from_block, "toBlock": "latest"}
+            if app_id_padded:
+                filter_params["topics"] = [None, app_id_padded]  # any event with app_id in topic[1]
+            resp = httpx.post(BASE_RPC, json={
+                "jsonrpc": "2.0", "id": 1, "method": "eth_getLogs", "params": [filter_params]
+            }, timeout=15)
+            logs = resp.json().get("result", [])
+            events = []
+            for log in logs[-limit:]:
+                events.append({
+                    "block": int(log["blockNumber"], 16),
+                    "tx": log["transactionHash"],
+                    "topics": log.get("topics", []),
+                    "data": log.get("data"),
+                })
+            return json.dumps({
+                "app_id": app_id,
+                "contract": KMS_CONTRACT,
+                "event_count": len(logs),
+                "showing_last": min(limit, len(logs)),
+                "events": events,
+                "basescan": f"https://basescan.org/address/{KMS_CONTRACT}#events"
+            }, indent=2)
+        except Exception as e:
+            return json.dumps({"error": str(e)})
 
     return f"Unknown tool: {name}"
 
