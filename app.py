@@ -547,7 +547,7 @@ def execute_tool(name: str, input: dict) -> str:
 
     elif name == "query_kms_contract":
         BASE_RPC = "https://mainnet.base.org"
-        KMS_CONTRACT = "0xbE60F92FC5a2fC73f6DeC51BaD1EED45b2f61642"  # dstack KMS on Base
+        KMS_CONTRACT = "0xd343a3f5593b93D8056aB5D60c433622d7D65a80"  # dstack KMS on Base
         app_id = input.get("app_id")
         if not app_id and dstack:
             try:
@@ -578,7 +578,7 @@ def execute_tool(name: str, input: dict) -> str:
 
     elif name == "query_compose_events":
         BASE_RPC = "https://mainnet.base.org"
-        KMS_CONTRACT = "0xbE60F92FC5a2fC73f6DeC51BaD1EED45b2f61642"
+        KMS_CONTRACT = "0xd343a3f5593b93D8056aB5D60c433622d7D65a80"
         app_id = input.get("app_id")
         limit = input.get("limit", 10)
         if not app_id and dstack:

@@ -1,6 +1,6 @@
 services:
   app:
-    image: socrates1024/self-attesting-tee@sha256:5d6888da0aeb748802a2f284c757de5f5bbef5e4fca3340c4cd17079f8101a8e
+    image: socrates1024/self-attesting-tee@sha256:1724257998a2bcbff3508b923cf1667e02459a859fa1edf32f17e47171cf0b20
     ports:
       - "8080:8080"
     volumes:
